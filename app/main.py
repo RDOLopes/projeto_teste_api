@@ -4,8 +4,8 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
-from tables.connection.database import return_databases
-from tables.noticia import Noticia
+from collections.connection.database____ import return_databases
+from collections.noticia import Noticia
 from routers import notica
 
 app = FastAPI()
@@ -39,3 +39,8 @@ async def shutdown():
 @app.get("/")
 async def root():
     Noticia()
+    return RedirectResponse(url='/docs')
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, log_level="info")

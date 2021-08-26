@@ -1,90 +1,74 @@
 from typing import List
 
 from fastapi import Depends, HTTPException
-from fastapi.encoders import jsonable_encoder
-from sqlalchemy import exc
-from sqlalchemy.orm import Session
+
 from starlette import status
 from starlette.responses import JSONResponse
 
 from app.routers.dtos.noticia_dto import NoticiaDto
-from app.tables.noticia import Noticia
 from app.settings import ERRO_OPERACAO, SUCESSO_OPERACAO
-from app.util import AuthHandler, get_router, get_db
+from app.collections.noticia import collection_noticia
+from app.tools import busca_por_id, verificar_existencia, retorna_erro_nao_encontrado, retorna_json_busca_id, \
+    retorna_json, retorna_sucesso_operacao, retorna_erro_operacao
+from app.util import AuthHandler, get_router
 
 router = get_router("/noticias", ["Noticia"])
 autenticador = AuthHandler()
 
 
-def verificar_existencia_noticia(noticia):
-    if noticia is not None:
-        return True
-    return False
-
-
-def retorna_erro_noticia_nao_encontrada(id_noticia):
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"A notícia de id {id_noticia} não foi encontrada")
+@router.get("/")
+async def buscar(token=Depends(autenticador.auth_wrapper)) -> List[NoticiaDto]:
+    try:
+        noticias = collection_noticia.find()
+        if noticias:
+            array_noticias_dto = [NoticiaDto(noticia.titulo, noticia.conteudo, noticia.data_publicacao) for noticia in
+                                  noticias]
+            return retorna_sucesso_operacao(array_noticias_dto)
+        else:
+            retorna_erro_nao_encontrado()
+    except Exception:
+        retorna_erro_operacao()
 
 
 @router.get("/")
-async def buscar_todas(
-        db: Session = Depends(get_db),
-        token=Depends(autenticador.auth_wrapper)
-) -> List[NoticiaDto]:
+async def buscar(noticia_id, token=Depends(autenticador.auth_wrapper)) -> List[NoticiaDto]:
     try:
-        noticias = db.query(Noticia).all()
-        if noticias:
-            dados = [NoticiaDto(noticia.titulo, noticia.conteudo, noticia.data_publicacao) for noticia in noticias]
-            return JSONResponse(status_code=status.HTTP_200_OK, content={"mensagem": SUCESSO_OPERACAO, "dados": jsonable_encoder(dados)})
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhuma notícia encontrada.")
-    except exc.SQLAlchemyError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERRO_OPERACAO)
+        noticia = busca_por_id(noticia_id)
+        if verificar_existencia(noticia):
+            return retorna_sucesso_operacao(noticia)
+        retorna_erro_nao_encontrado()
+    except Exception:
+        raise retorna_erro_operacao()
 
 
 @router.post("/")
-async def criar(noticia_dto: NoticiaDto, token=Depends(autenticador.auth_wrapper), db: Session = Depends(get_db)) -> NoticiaDto:
+async def criar(noticia_dto: NoticiaDto, token=Depends(autenticador.auth_wrapper)) -> NoticiaDto:
     try:
-        noticia = Noticia(titulo=noticia_dto.titulo,
-                          conteudo=noticia_dto.conteudo,
-                          data_publicacao=noticia_dto.data_publicacao)
-
-        db.add(noticia)
-        db.commit()
-        db.refresh(noticia)
-        return JSONResponse(status_code=status.HTTP_201_CREATED, content={"mensagem": SUCESSO_OPERACAO, "dados": jsonable_encoder(noticia_dto)})
-
-    except exc.SQLAlchemyError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERRO_OPERACAO)
+        noticia_json = retorna_json(noticia_dto)
+        collection_noticia.insert_one(noticia_json)
+        return retorna_sucesso_operacao(noticia_dto)
+    except Exception:
+        retorna_erro_operacao()
 
 
 @router.put("/")
-async def alterar(noticia_dto: NoticiaDto, token=Depends(autenticador.auth_wrapper), db: Session = Depends(get_db)) -> NoticiaDto:
+async def alterar(noticia_dto: NoticiaDto, token=Depends(autenticador.auth_wrapper)) -> NoticiaDto:
     try:
-        noticia = db.query(Noticia).filter(Noticia.id == noticia_dto.id).first()
-        if verificar_existencia_noticia(noticia):
-            noticia.titulo = noticia_dto.titulo
-            noticia.conteudo = noticia_dto.conteudo
-            noticia.data_publicacao = noticia_dto.data_publicacao
-            db.commit()
-            db.refresh(noticia)
-            return JSONResponse(status_code=status.HTTP_200_OK, content={"mensagem": SUCESSO_OPERACAO, "dados": jsonable_encoder(noticia_dto)})
-        retorna_erro_noticia_nao_encontrada(noticia_dto.id)
-
-    except exc.SQLAlchemyError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERRO_OPERACAO)
+        if verificar_existencia(busca_por_id(noticia_dto.id, collection_noticia)):
+            json_noticia = retorna_json(noticia_dto)
+            collection_noticia.update_one(retorna_json_busca_id(noticia_dto.id), json_noticia)
+            return retorna_sucesso_operacao(noticia_dto)
+        retorna_erro_nao_encontrado(noticia_dto.id)
+    except Exception:
+        retorna_erro_operacao()
 
 
 @router.delete("/")
-async def delete(noticia_id: int, token=Depends(autenticador.auth_wrapper), db: Session = Depends(get_db)):
+async def delete(noticia_id: int, token=Depends(autenticador.auth_wrapper)):
     try:
-        noticia = db.query(Noticia).filter(Noticia.id == noticia_id)
-        if verificar_existencia_noticia(noticia.first()):
-            db.query(Noticia).filter(Noticia.Id == noticia_id).delete()
-            db.commit()
+        if verificar_existencia(busca_por_id(noticia_id)):
+            collection_noticia.delete_one(retorna_json_busca_id(noticia_id))
             return JSONResponse(status_code=status.HTTP_200_OK, content={"mensagem": SUCESSO_OPERACAO})
-        retorna_erro_noticia_nao_encontrada(noticia.id)
-    except exc.SQLAlchemyError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERRO_OPERACAO)
-
-
+        retorna_erro_nao_encontrado(noticia_id)
+    except Exception:
+        retorna_erro_operacao()

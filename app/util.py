@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 
-from app.tables.connection.database import SessionLocal
+from app.collections.connection.database____ import SessionLocal
 from settings import SECRET, EXPIRE_TIME, ALGORITHM
 
 

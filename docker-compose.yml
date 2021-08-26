@@ -11,12 +11,12 @@ services:
       APP_MODULE_NAME: 'main'
       APP_NAME: 'app'
       APP_PORT: 5000
-      DB_HOST: 'postgres'
+      DB_HOST: 'mongodb'
       DB_NAME: 'projetoTesteDB'
       DB_PASSWORD: "root"
-      DB_PORT: 5432
-      DB_PROTOCOL: 'postgresql'
-      DB_USER: 'postgres'
+      DB_PORT: 27017
+      DB_PROTOCOL: 'mongodb'
+      DB_USER: 'mongo'
       JWT_ALGORITHM: 'HS256'
       JWT_EXPIRE_TIME: 60
       JWT_SECRET: '###'
@@ -37,7 +37,7 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - ~/estudamais-db_data:/data/db
+      - ~/projeto_teste_info_globo_data:/data/db
 
   mongo-express:
     image: mongo-express

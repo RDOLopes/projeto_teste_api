@@ -4,6 +4,7 @@ EXPOSE 5000
 WORKDIR /app
 COPY app/requirements.txt /app/
 RUN pip install -r requirements.txt
+RUN mkdir -p ~/projeto_teste_info_globo_data
 COPY ./app /app
 
 ENV PYTHONPATH "${PYTHONPATH}:/app"
