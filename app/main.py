@@ -1,17 +1,16 @@
 import uvicorn
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
-from collections.connection.database____ import return_databases
-from collections.noticia import Noticia
-from routers import notica
+from routers import notica, usuario, auth
 
 app = FastAPI()
 app.include_router(notica.router)
+app.include_router(usuario.router)
+app.include_router(auth.router)
 
-database = return_databases()
 
 origins = [
     "http://localhost"
@@ -26,19 +25,18 @@ app.add_middleware(
 )
 
 
-@app.on_event('startup')
-async def startup():
-    await database.connect()
-
-
-@app.on_event('shutdown')
-async def shutdown():
-    await database.disconnect()
+# @app.on_event('startup')
+# async def startup():
+#     await database.connect()
+#
+#
+# @app.on_event('shutdown')
+# async def shutdown():
+#     await database.disconnect()
 
 
 @app.get("/")
 async def root():
-    Noticia()
     return RedirectResponse(url='/docs')
 
 

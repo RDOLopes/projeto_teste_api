@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.responses import JSONResponse
 
+from app.collections.connection.database import mongo_database
 from app.settings import SUCESSO_OPERACAO, ERRO_OPERACAO
 
 
@@ -17,7 +18,7 @@ def retorna_json_busca_id(id):
 
 
 def busca_por_id(id, collection):
-    return collection.find(retorna_json_busca_id(id))
+    return collection.find_one(retorna_json_busca_id(int(id)))
 
 
 def retorna_json(receber_encode_json):
@@ -35,4 +36,10 @@ def retorna_erro_operacao():
 
 def retorna_erro_nao_encontrado():
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum resultado foi encontrado.")
+
+
+def retorna_json_update(informacao_update):
+    return {"$set": retorna_json(informacao_update)}
+
+
 

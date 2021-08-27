@@ -9,10 +9,5 @@ class NoticiaDto(ModelBaseDto):
     conteudo: Optional[str]
     data_publicacao: Optional[datetime]
 
-    def __init__(self, titulo, conteudo, data_publicacao):
-        self.titulo = titulo
-        self.conteudo = conteudo
-        self.data_publicacao = data_publicacao
-
     class Config:
         orm_mode = True
